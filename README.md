@@ -4,14 +4,12 @@ A fast, concurrent TCP port scanner built in Go with a browser-based GUI featuri
 
 ## Features
 
-- **Concurrent scanning** — uses Go goroutines and a worker pool to scan ports in parallel
-- **Live results** — ports stream into the table in real time as they are discovered
-- **Filtering** — toggle between All, Open, and Closed ports instantly
-- **Search** — search by port number or service name (e.g. "HTTP", "SSH")
-- **Service detection** — automatically identifies common services (FTP, SSH, HTTP, HTTPS, RDP, and more)
-- **Progress tracking** — live progress bar and open/closed port counts while scanning
-- **Auto-launch** — opens the browser automatically on startup, no manual navigation needed
-- **Auto-shutdown** — server shuts itself down when the browser tab is closed
+- **Concurrent scanning**  uses Go goroutines and a worker pool to scan ports in parallel
+- **Live results**  ports stream into the table in real time as they are discovered
+- **Filtering**  toggle between All, Open, and Closed ports instantly
+- **Search**  search by port number or service name (e.g. "HTTP", "SSH")
+- **Service detection**  automatically identifies common services (FTP, SSH, HTTP, HTTPS, RDP, and more)
+- **Progress tracking**  live progress bar and open/closed port counts while scanning
 
 ## Usage
 
@@ -52,10 +50,3 @@ $env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o PortScann
 $env:GOOS="linux";   $env:GOARCH="amd64"; go build -ldflags="-s -w" -o PortScanner-linux .
 $env:GOOS="darwin";  $env:GOARCH="amd64"; go build -ldflags="-s -w" -o PortScanner-mac .
 ```
-
-## Tech Stack
-
-- **Backend**  Go (net, net/http, sync, embed)
-- **Concurrency**  goroutine worker pool with channels
-- **Streaming**  Server-Sent Events (SSE) for live results
-- **Frontend**  HTML, CSS, JavaScript (GUI designed with generative AI)

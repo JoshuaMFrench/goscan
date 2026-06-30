@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoScan — Port Scanner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0e1a;
+    --surface:   #111827;
+    --surface2:  #1a2235;
+    --border:    #1f2d45;
+    --accent:    #00d4aa;
+    --accent-dim:#00d4aa22;
+    --danger:    #ff4d6d;
+    --danger-dim:#ff4d6d18;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --open:      #00d4aa;
+    --closed:    #334155;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--text); }
+  .tagline { font-size: 12px; color: var(--muted); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+
+  /* ── Controls ── */
+  .controls {
+    padding: 24px 32px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 180px;
+  }
+
+  input:focus { border-color: var(--accent); }
+  input.short { width: 90px; }
+
+  .btn {
+    padding: 9px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0e1a;
+  }
+
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-stop {
+    background: var(--danger);
+    color: #fff;
+    display: none;
+  }
+
+  .btn-stop:hover { opacity: 0.88; }
+
+  /* ── Stats bar ── */
+  .stats {
+    padding: 12px 32px;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .stat-value.open  { color: var(--accent); }
+  .stat-value.closed { color: var(--muted); }
+  .stat-value.total { color: var(--text); }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* progress */
+  .progress-wrap {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .progress-bar {
+    width: 160px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  .progress-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 36px;
+  }
+
+  /* ── Filters ── */
+  .filters {
+    padding: 12px 32px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .filter-search {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.15s;
+  }
+
+  .filter-search:focus { border-color: var(--accent); }
+
+  .filter-btn {
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active-all  { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active-open { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active-closed { background: var(--surface2); border-color: var(--border); color: var(--text); }
+
+  .results-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Table ── */
+  .table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 32px 32px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+  }
+
+  thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.hidden { display: none; }
+
+  td {
+    padding: 11px 16px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  td.port-num { color: var(--text); font-weight: 600; }
+  td.service  { color: var(--muted); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge-open {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent)44;
+  }
+
+  .badge-closed {
+    background: #1e293b;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .dot-open   { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot-closed { background: var(--muted); }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 80px 32px;
+    color: var(--muted);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  .empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .empty-sub { font-size: 13px; }
+
+  /* ── Scanning pulse ── */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .scanning-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Go<span>Scan</span></div>
+  <div class="tagline">TCP Port Scanner</div>
+</header>
+
+<div class="controls">
+  <div class="field">
+    <label>Target IP</label>
+    <input type="text" id="ip" value="127.0.0.1" placeholder="e.g. 192.168.1.1">
+  </div>
+  <div class="field">
+    <label>Start Port</label>
+    <input type="number" id="startPort" value="1" min="1" max="65535" class="short">
+  </div>
+  <div class="field">
+    <label>End Port</label>
+    <input type="number" id="endPort" value="1024" min="1" max="65535" class="short">
+  </div>
+  <button class="btn btn-primary" id="scanBtn" onclick="startScan()">Scan</button>
+  <button class="btn btn-stop" id="stopBtn" onclick="stopScan()">Stop</button>
+  <span class="scanning-label" id="scanningLabel" style="display:none">● SCANNING</span>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="stat-value total" id="totalCount">0</span>
+    <span class="stat-label">Scanned</span>
+  </div>
+  <div class="stat">
+    <span class="stat-value open" id="openCount">0</span>
+    <span class="stat-label">Open</span>
+  </div>
+  <div class="stat">
+    <span class="stat-value closed" id="closedCount">0</span>
+    <span class="stat-label">Closed</span>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText">0%</span>
+  </div>
+</div>
+
+<div class="filters">
+  <input class="filter-search" type="text" id="searchBox" placeholder="Search port or service..." oninput="applyFilters()">
+  <button class="filter-btn active-all" id="filterAll"    onclick="setFilter('all')">All</button>
+  <button class="filter-btn"            id="filterOpen"   onclick="setFilter('open')">Open</button>
+  <button class="filter-btn"            id="filterClosed" onclick="setFilter('closed')">Closed</button>
+  <span class="results-count" id="resultsCount"></span>
+</div>
+
+<div class="table-wrap">
+  <div class="empty" id="emptyState">
+    <div class="empty-icon">⬡</div>
+    <div class="empty-title">No scan running</div>
+    <div class="empty-sub">Enter a target IP and hit Scan to begin</div>
+  </div>
+
+  <table id="resultsTable" style="display:none">
+    <thead>
+      <tr>
+        <th>Port</th>
+        <th>Status</th>
+        <th>Service</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<script>
+  let evtSource = null;
+  let currentFilter = 'all';
+  let totalPorts = 0;
+  let scannedCount = 0;
+  let openCount = 0;
+  let closedCount = 0;
+
+  function startScan() {
+    const ip        = document.getElementById('ip').value.trim();
+    const startPort = parseInt(document.getElementById('startPort').value);
+    const endPort   = parseInt(document.getElementById('endPort').value);
+
+    if (!ip) { alert('Please enter a target IP.'); return; }
+    if (startPort > endPort) { alert('Start port must be less than end port.'); return; }
+
+    // Reset
+    document.getElementById('tableBody').innerHTML = '';
+    document.getElementById('resultsTable').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'none';
+    scannedCount = openCount = closedCount = 0;
+    totalPorts = endPort - startPort + 1;
+    updateStats();
+
+    document.getElementById('scanBtn').disabled = true;
+    document.getElementById('stopBtn').style.display = 'inline-block';
+    document.getElementById('scanningLabel').style.display = 'inline';
+    document.getElementById('resultsTable').style.display = 'table';
+
+    const url = `/scan?ip=${encodeURIComponent(ip)}&start=${startPort}&end=${endPort}`;
+    evtSource = new EventSource(url);
+
+    evtSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.done) { scanComplete(); return; }
+      addRow(data);
+    };
+
+    evtSource.onerror = () => { scanComplete(); };
+  }
+
+  function stopScan() {
+    if (evtSource) { evtSource.close(); evtSource = null; }
+    scanComplete();
+  }
+
+  function scanComplete() {
+    if (evtSource) { evtSource.close(); evtSource = null; }
+    document.getElementById('scanBtn').disabled = false;
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('scanningLabel').style.display = 'none';
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressText').textContent = '100%';
+    applyFilters();
+  }
+
+  function addRow(data) {
+    scannedCount++;
+    if (data.status === 'open') openCount++;
+    else closedCount++;
+    updateStats();
+
+    const tr = document.createElement('tr');
+    tr.dataset.port    = data.port;
+    tr.dataset.status  = data.status;
+    tr.dataset.service = (data.service || '').toLowerCase();
+
+    const dotClass   = data.status === 'open' ? 'dot-open'   : 'dot-closed';
+    const badgeClass = data.status === 'open' ? 'badge-open' : 'badge-closed';
+
+    tr.innerHTML = `
+      <td class="port-num">${data.port}</td>
+      <td><span class="badge ${badgeClass}"><span class="dot ${dotClass}"></span>${data.status}</span></td>
+      <td class="service">${data.service || '—'}</td>
+    `;
+
+    document.getElementById('tableBody').appendChild(tr);
+    applyFiltersToRow(tr);
+  }
+
+  function updateStats() {
+    document.getElementById('totalCount').textContent  = scannedCount;
+    document.getElementById('openCount').textContent   = openCount;
+    document.getElementById('closedCount').textContent = closedCount;
+    const pct = totalPorts > 0 ? Math.round((scannedCount / totalPorts) * 100) : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent  = pct + '%';
+  }
+
+  function setFilter(f) {
+    currentFilter = f;
+    document.getElementById('filterAll').className    = 'filter-btn' + (f === 'all'    ? ' active-all'    : '');
+    document.getElementById('filterOpen').className   = 'filter-btn' + (f === 'open'   ? ' active-open'   : '');
+    document.getElementById('filterClosed').className = 'filter-btn' + (f === 'closed' ? ' active-closed' : '');
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const search = document.getElementById('searchBox').value.toLowerCase();
+    const rows = document.getElementById('tableBody').querySelectorAll('tr');
+    let visible = 0;
+
+    rows.forEach(tr => {
+      applyFiltersToRow(tr, search);
+      if (!tr.classList.contains('hidden')) visible++;
+    });
+
+    document.getElementById('resultsCount').textContent =
+      rows.length > 0 ? `${visible} of ${rows.length} ports` : '';
+  }
+
+  function applyFiltersToRow(tr, search) {
+    search = search ?? document.getElementById('searchBox').value.toLowerCase();
+    const statusMatch  = currentFilter === 'all' || tr.dataset.status === currentFilter;
+    const searchMatch  = !search ||
+      tr.dataset.port.includes(search) ||
+      tr.dataset.service.includes(search);
+
+    tr.classList.toggle('hidden', !(statusMatch && searchMatch));
+  }
+  // Heartbeat - ping server every 3 seconds
+  setInterval(() => {
+    fetch('/heartbeat').catch(() => {})
+  }, 3000)
+  
+</script>
+</body>
+</html>
